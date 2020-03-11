@@ -1,62 +1,139 @@
-# TypeScript Next.js example
+# Next.js Apollo TypeScript starter with Docker
 
-This is a really simple project that shows the usage of Next.js with TypeScript.
+- [What you get](#what-you-get)
+  - [Features](#features)
+  - [Developer experience](#developer-experience)
+- [Getting started](#getting-started)
+  - [Start development server](#start-development-server)
+  - [Run tests](#run-tests)
+- [Additional helpers](#additional-helpers)
+  - [useAuth()](#useauth-hook)
+- [Docker](#docker)
 
-## Deploy your own
+## What you get
 
-Deploy the example using [ZEIT Now](https://zeit.co/now):
+### Features
 
-[![Deploy with ZEIT Now](https://zeit.co/button)](https://zeit.co/import/project?template=https://github.com/zeit/next.js/tree/canary/examples/with-typescript)
+- Latest [Next.js](https://nextjs.org/) version.
+- GraphQL [Apollo](https://www.apollographql.com/docs/react/essentials/get-started/) client with built-in [JWT](https://jwt.io/) authentication.
+- Localization via [i18next](https://github.com/isaachinman/next-i18next/).
+- Configured [TypeScript](https://www.typescriptlang.org/) environment.
+- Configured [Sass/SCSS](https://sass-lang.com/) via [next-sass](https://github.com/zeit/next-plugins/tree/master/packages/next-sass) for styling (plus [Normalize.css](https://necolas.github.io/normalize.css/) included).
+- Built-in [helpers](#additional-helpers).
 
-## How to use it?
+### Developer experience
 
-### Using `create-next-app`
+- Testing environment via [Jest](https://jestjs.io/) and [@testing-library/react](https://testing-library.com/docs/react-testing-library/intro).
+- [Prettier](https://prettier.io/) for code formatting.
+- Debug configuration for [VSCode](https://code.visualstudio.com/).
+- [Docker](https://www.docker.com/) configuration to serve **production-ready** build with Nginx.
 
-Execute [`create-next-app`](https://github.com/zeit/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init) or [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/) to bootstrap the example:
+## Getting started
+
+### Start development server
+
+Before start using project you have to unstall dependencies by running _one of these commands_:
 
 ```bash
-npm init next-app --example with-typescript with-typescript-app
-# or
-yarn create next-app --example with-typescript with-typescript-app
-```
-
-### Download manually
-
-Download the example:
-
-```bash
-curl https://codeload.github.com/zeit/next.js/tar.gz/canary | tar -xz --strip=2 next.js-canary/examples/with-typescript
-cd with-typescript
-```
-
-Install it and run:
-
-```bash
-npm install
-npm run dev
-# or
+# If you're using Yarn package mangaer:
 yarn
-yarn dev
+
+# If you're using NPM package mangaer:
+npm install
 ```
 
-Deploy it to the cloud with [ZEIT Now](https://zeit.co/import?filter=next.js&utm_source=github&utm_medium=readme&utm_campaign=next-example) ([Documentation](https://nextjs.org/docs/deployment)).
+### Tests
 
-## Notes
+We are using [Jest](https://jestjs.io/) for testing. To run tests located in `src/tests` directory use `test` script from `package.json`:
 
-This example shows how to integrate the TypeScript type system into Next.js. Since TypeScript is supported out of the box with Next.js, all we have to do is to install TypeScript.
-
-```
-npm install --save-dev typescript
+```bash
+yarn test
 ```
 
-To enable TypeScript's features, we install the type declaratons for React and Node.
+---
 
+Pretty much everything you need to know you can find in [Next.js documentation](https://nextjs.org/docs).
+
+## Additional helpers
+
+### `useAuth()` hook
+
+This hook helps you to implement authentication. Here is an example how to use it:
+
+```tsx
+import React from 'react';
+
+import { useAuth } from './utils/auth';
+
+const MyPage = () => {
+  const [{ data }, logout] = useAuth();
+
+  return (
+    <div>
+      {data ? (
+        <div>
+          <div>Hello, {data.me.name}!</div>
+          <button onClick={logout}>Log out</button>
+        </div>
+      ) : (
+        <div>Please sign in</div>
+      )}
+    </div>
+  );
+};
 ```
-npm install --save-dev @types/react @types/react-dom @types/node
+
+If you don't want to wrap whole application in authentication environment (for example, you may not want to do any authentication-based requests on `/login` page), you can use `withAuth` HOC on needed pages instead of using `AuthProvider` as global wrapper:
+
+`_app.tsx`:
+
+```diff
+import React from 'react';
+import App from 'next/app';
+
+import { withApollo } from '../lib/apollo';
+import { appWithTranslation } from '../lib/i18n';
+- import { AuthProvider } from '../utils/auth';
+
+class MyApp extends App {
+  render() {
+    const { Component, pageProps } = this.props;
+
+    return (
+-     <AuthProvider>
+-       <Component {...pageProps} />
+-     </AuthProvider>
++     <Component {...pageProps} />
+    );
+  }
+}
+
+export default withApollo(appWithTranslation(MyApp));
 ```
 
-When we run `next dev` the next time, Next.js will start looking for any `.ts` or `.tsx` files in our project and builds it. It even automatically creates a `tsconfig.json` file for our project with the recommended settings.
+Any page that required authentication:
 
-Next.js has built-in TypeScript declarations, so we'll get autocompletion for Next.js' modules straight away.
+```diff
+import React from 'react';
+import { NextPage } from 'next';
 
-A `type-check` script is also added to `package.json`, which runs TypeScript's `tsc` CLI in `noEmit` mode to run type-checking separately. You can then include this, for example, in your `test` scripts.
+- import { useAuth } from '../utils/auth';
++ import { useAuth, withAuth } from '../utils/auth';
+
+const AuthenticationRequiredPage: NextPage = () => {
+  const [{ data }] = useAuth();
+
+  return <div>Hi, user with ID {data.me.id}!</div>;
+};
+
+- export default AuthenticationRequiredPage;
++ export default withAuth(AuthenticationRequiredPage);
+```
+
+## Docker
+
+To build and run Dockerized **production-ready** container, run:
+
+```bash
+docker-compose up --build
+```
